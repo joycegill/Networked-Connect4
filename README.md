@@ -16,4 +16,6 @@ To compile and run the project, use the provided `Makefile`. Simply execute the 
 
 ```bash
 make
+```
+```bash
 ./connect4
