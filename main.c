@@ -63,6 +63,22 @@ static void draw_grid(int left, int top) {
     attroff(COLOR_PAIR(BOARD_COLOR));     
 }
 
+/**  Find which row the token should drop to
+ * @param col The column index where the token is being dropped
+ * @param player The player placing the token
+ * 
+ * @return The row index where the token should land
+ * */
+int find_row(int col, const unsigned char *cells) {
+    // check for the available row in the column 
+    for (int row = ROWS - 1; row >= 0; row--){
+        if (cells[row*COLS + col] == PLAYER_NONE) {
+            return row;
+        }
+    }
+    return -1; // No space available 
+} 
+
 int main(void) {
     // Initialize ncurses
     if (initscr() == NULL)
