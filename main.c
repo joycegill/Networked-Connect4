@@ -108,6 +108,7 @@ int main(void) {
     init_pair(BOARD_COLOR, COLOR_BLUE, COLOR_BLACK);
 
     unsigned char cells[ROWS * COLS] = {0};
+<<<<<<< Updated upstream
     cells[5 * COLS + 3] = PLAYER_ONE;
     cells[5 * COLS + 4] = PLAYER_TWO;
     cells[4 * COLS + 3] = PLAYER_ONE;
@@ -122,5 +123,75 @@ int main(void) {
     while ((ch = getch()) != 'q' && ch != 'Q')
         ;
     endwin();
+=======
+    // cells[5 * COLS + 3] = PLAYER_ONE; // Example token for Player 1
+    // cells[5 * COLS + 4] = PLAYER_TWO; // Example token for Player 2
+
+    // Board position 
+    int left = 4;
+    int top = 4;
+
+    // Track player turn
+    unsigned char player = PLAYER_ONE;
+
+    // Column currently selected
+    int current_col = 0;
+
+    while(1) {
+        // Clear the screen and draw the board
+        clear();
+        mvprintw(1, 2, "Connect 4 board demo (press q to exit)"); // Display instructions
+        draw_grid(4, 4);          // Draw the grid
+        draw_tokens(4, 4, cells); // Draw the tokens
+        // Draw drop indicator
+        mvaddch(top - 1, left + current_col * SLOT_WIDTH + 1, '^');
+        // Display turn info
+        mvprintw(top + ROWS * SLOT_HEIGHT + 2, left,
+                 "Player %d's turn (q to quit)", player);
+
+        refresh();
+        
+
+        // LEFT: move left
+        // RIGHT: move right
+        // SPACE: select move
+        // q: Quit
+        int ch = getch();
+        if (ch == 'q') {
+            break; // exit if the user enter q or Q
+        }
+
+        switch (ch) {
+            case KEY_LEFT: 
+                current_col--;
+                break;
+            case KEY_RIGHT:
+                current_col++;
+                break;
+            case ' ': {
+                int row = find_row(current_col, cells);
+                if (row != -1) {
+                    cells[row*COLS + current_col] = player;
+
+                    // Switch players
+                    if (player == PLAYER_ONE) {
+                        player = PLAYER_TWO;
+                    } else {
+                        player = PLAYER_ONE;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    // refresh();                // Refresh the screen to display changes
+
+    // // Wait for the user to enter q or Q to exit
+    // int ch;
+    // while ((ch = getch()) != 'q' && ch != 'Q')
+    //     ;
+    endwin(); 
+    // End ncurses mode
+>>>>>>> Stashed changes
     return EXIT_SUCCESS;
 }
