@@ -1,7 +1,9 @@
+#define _XOPEN_SOURCE_EXTENDED 1 // For emoji support
 #include <ncurses.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <unistd.h>
+#include <locale.h>
+#include <wchar.h>
 
 #define SLOT_HEIGHT 2
 #define SLOT_WIDTH  4
@@ -34,12 +36,13 @@ static void draw_token(int left, int top, int col, int row, unsigned char player
     int y = top + row * SLOT_HEIGHT + 1;
     // Cite: https://linux.die.net/man/3/attron
     // Set the color for the player
-    attron(COLOR_PAIR(player));
+    attron(COLOR_PAIR(player) | A_BOLD);
+    // Draw the token using # characters
     for (int dx = 0; dx < SLOT_WIDTH - 1; ++dx)
         // Draw the token
         // Cite: https://linux.die.net/man/3/mvaddch 
-        mvaddch(y, x + dx, ACS_BOARD);
-    attroff(COLOR_PAIR(player));
+        mvaddch(y, x + dx, '#');
+    attroff(COLOR_PAIR(player) | A_BOLD);
 }
 
 // Function to draw all tokens on the board
@@ -153,7 +156,7 @@ int check_win(const unsigned char *cells, int row, int col, unsigned char player
 int is_board_full(const unsigned char *cells) {
     // Check if top row (row 0) is completely filled
     for (int col = 0; col < COLS; col++) {
-        if (cells[0 * COLS + col] == PLAYER_NONE)
+        if (cells[col] == PLAYER_NONE)
             return 0;
     }
     return 1;
@@ -210,39 +213,77 @@ void* player_thread(void *arg) {
 void update_display(void) {
     clear();
     // Cite: https://linux.die.net/man/3/mvprintw 
-    mvprintw(0, 2, "Connect 4");
+    // Draw title in bold with emoji
+    attron(A_BOLD);
+    wchar_t game_emoji[2] = {L'🎮', L'\0'};
+    mvaddwstr(0, 2, game_emoji);
+    mvprintw(0, 4, "Connect 4!!");
+    attroff(A_BOLD);
     
-    // Show game status message
+    // Show game status message with emojis
     if (game.game_over) {
         if (game.winner == PLAYER_NONE) {
-            mvprintw(2, 2, "Game Over: Draw!");
+            wchar_t handshake[2] = {L'🤝', L'\0'};
+            mvaddwstr(2, 2, handshake);
+            mvprintw(2, 4, "Game Over: Draw!");
         } else {
-            mvprintw(2, 2, "Game Over: Player %d Wins!", game.winner);
+            wchar_t trophy[2] = {L'🏆', L'\0'};
+            wchar_t confetti[2] = {L'🎉', L'\0'};
+            mvaddwstr(2, 2, trophy);
+            mvaddwstr(2, 4, confetti);
+            mvprintw(2, 6, "Player %d Wins!", game.winner);
+            mvaddwstr(2, 20, confetti);
         }
     } else {
         mvprintw(2, 2, "Player %d's turn (Arrow keys to move, Space to place, q to quit)", 
                  game.current_player);
     }
     
-    // Draw the board
-    draw_grid(4, 4);
-    draw_tokens(4, 4, game.cells);
+    // Draw the board 
+    draw_grid(4, 5);
+    draw_tokens(4, 5, game.cells);
     
-    // Draw cursor indicator above selected column
+    // Draw cursor indicator above selected column with emoji arrow
     if (!game.game_over) {
         int cursor_x = 4 + game.cursor_col * SLOT_WIDTH + SLOT_WIDTH / 2;
-        int cursor_y = 3;
-        attron(COLOR_PAIR(BOARD_COLOR));
-        mvaddch(cursor_y, cursor_x, '^');
-        attroff(COLOR_PAIR(BOARD_COLOR));
+        int cursor_y = 4;
+        attron(COLOR_PAIR(BOARD_COLOR) | A_BOLD);
+        // Use regular arrows for reliable visibility
+        mvprintw(cursor_y, cursor_x - 1, "^^^");
+        attroff(COLOR_PAIR(BOARD_COLOR) | A_BOLD);
     }
     
-    // Show controls
-    mvprintw(ROWS * SLOT_HEIGHT + 6, 2, "Controls: Arrow keys = Move cursor, Space = Place token, q = Quit");
+    // Display rules on the right side with emojis
+    int rules_x = COLS * SLOT_WIDTH + 10;
+    attron(A_BOLD);
+    wchar_t rules_emoji[2] = {L'📋', L'\0'};
+    mvaddwstr(5, rules_x, rules_emoji);
+    mvprintw(5, rules_x + 2, "RULES:"); 
+    attroff(A_BOLD);
+
+    // Number rules
+    mvprintw(6, rules_x, "1. Players take turns");
+    mvprintw(7, rules_x + 2, "placing tokens in columns");
+    mvprintw(8, rules_x, "2. Tokens drop to the");
+    mvprintw(9, rules_x + 2, "lowest empty row");
+    mvprintw(10, rules_x, "3. First to get 4 in a");
+    wchar_t trophy2[2] = {L'🏆', L'\0'};
+    mvaddwstr(11, rules_x + 2, trophy2);
+    mvprintw(11, rules_x + 4, "row wins!");
+    mvprintw(12, rules_x + 2, "(horizontal, vertical,");
+    mvprintw(13, rules_x + 2, "or diagonal)");
+    
+    // Show controls 
+    wchar_t keyboard[2] = {L'⌨', L'\0'};
+    mvaddwstr(ROWS * SLOT_HEIGHT + 7, 2, keyboard);
+    mvprintw(ROWS * SLOT_HEIGHT + 7, 4, "Controls: Arrow keys = Move cursor, Space = Place token, q = Quit");
     refresh();
 }
 
 int main(void) {
+    // Set locale for UTF-8 support (required for emojis)
+    setlocale(LC_ALL, "");
+    
     // Initialize ncurses
     if (initscr() == NULL)
         return EXIT_FAILURE;
