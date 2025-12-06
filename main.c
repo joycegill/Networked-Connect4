@@ -293,6 +293,7 @@ void* recieved_thread(void* arg) {
     while (!game.game_over) {
         unsigned char col;
         if (read(fd, &col, 1) <= 0) break; // disconnected
+<<<<<<< HEAD
 
         pthread_mutex_lock(&game.mutex);
 
@@ -375,6 +376,87 @@ int main(int argc, char **argv) {
 =======
 int main(void) {
 >>>>>>> Stashed changes
+=======
+
+        pthread_mutex_lock(&game.mutex);
+
+        int row = find_row(col, game.cells);
+        if (row != -1) {
+            game.cells[row * COLS + col] = (game.current_player == PLAYER_NONE ? PLAYER_TWO : PLAYER_ONE);
+
+            // check win
+            if (check_win(game.cells, row, col, game.cells[row+COLS])) {
+                game.winner = game.cells[row * COLS + col];
+                game.game_over;
+            }
+
+            // switch turn
+            game.current_player = (game.current_player == PLAYER_NONE ? PLAYER_TWO : PLAYER_ONE);
+        }
+        pthread_mutex_unlock(&game.mutex);
+        update_display();
+    }
+    return NULL;
+}
+
+int main(int argc, char **argv) {
+    // Make sure the arguments include a username
+    // if (argc != 2 && argc != 4) {
+    //     fprintf(stderr, "Usage: %s <username> [<peer> <port number>]\n", argv[0]);
+    //     exit(1); 
+    // }
+
+    if (argc == 2) {
+        game.current_player = PLAYER_ONE;
+
+        // Set up a server socket
+        unsigned short port = 0;
+        intptr_t host_id = server_socket_open(&port);
+        if (host_id == -1) {
+            perror("Server socket was not opened");
+            exit(EXIT_FAILURE);
+        }
+
+        // start listening on our server
+        // cite: https://man7.org/linux/man-pages/man2/listen.2.html
+        if (listen(host_id, SOMAXCONN) == -1) {
+            perror("listen");
+            exit(EXIT_FAILURE);
+        }
+
+        // create thread to wait for connections
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, recieved_thread, (void *)host_id);
+
+    } else if (argc == 4) {
+        game.current_player = PLAYER_TWO;
+        // Unpack arguments
+        char *peer_hostname = argv[2];
+        unsigned short guest_port = atoi(argv[3]);
+
+        // TODO: Connect to another peer in the chat network
+        intptr_t peer_fd;
+        if ((peer_fd = socket_connect(peer_hostname, guest_port)) == -1) {
+            perror("Connection fail");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        fprintf(stderr, "Usage: %s <username> [<peer> <port number>]\n", argv[0]);
+        exit(1); 
+    }
+
+    // Save the username 
+    char *username = argv[1];
+
+    // Set up a server socket to accept incoming connections
+    unsigned short port = 0;
+    intptr_t server_socket_fd = server_socket_open(&port);
+    if (server_socket_fd == -1) {
+        perror("Server socket was not opened");
+        exit(EXIT_FAILURE);
+    }
+
+>>>>>>> 1e491ad (Some networking components)
     // Initialize ncurses
     if (initscr() == NULL)
         return EXIT_FAILURE;
