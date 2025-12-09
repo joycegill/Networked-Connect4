@@ -20,6 +20,7 @@
 #define PLAYER_TWO  2
 #define BOARD_COLOR 3
 
+<<<<<<< Updated upstream
 struct game_state {
     unsigned char cells[ROWS * COLS];
     unsigned char current_player;
@@ -47,6 +48,20 @@ static void draw_token(int left, int top, int col, int row, unsigned char player
         // Cite: https://linux.die.net/man/3/mvaddch 
         mvaddch(y, x + dx, ACS_BOARD);
     attroff(COLOR_PAIR(player));
+=======
+// Function to draw a single token on the board
+static void draw_token(int left, int top, int col, int row, unsigned char player) {
+    // Calculate the x-coordinate and y-coordinates
+    int x = left + col * SLOT_WIDTH + 1;  
+    int y = top + row * SLOT_HEIGHT + 1; 
+    // Cite: https://linux.die.net/man/3/attron
+    // Set the color for the player
+    attron(COLOR_PAIR(player));          
+    for (int dx = 0; dx < SLOT_WIDTH - 1; ++dx)
+        // Draw the token
+        mvaddch(y, x + dx, ACS_BOARD);   
+    attroff(COLOR_PAIR(player));         
+>>>>>>> Stashed changes
 }
 
 // Function to draw all tokens on the board
@@ -64,6 +79,7 @@ static void draw_tokens(int left, int top, const unsigned char *cells) {
 }
 
 // Function to draw the grid for the Connect 4 board
+<<<<<<< Updated upstream
 // Cite: https://c-for-dummies.com/ncurses/tables/table04-03.php 
 static void draw_grid(int left, int top) {
     // Calculate the bottom and right edges of the grid
@@ -72,6 +88,15 @@ static void draw_grid(int left, int top) {
 
     // Set the color for the board
     attron(COLOR_PAIR(BOARD_COLOR));
+=======
+static void draw_grid(int left, int top) {
+    // Calculate the bottom and right edges of the grid
+    int bottom = top + ROWS * SLOT_HEIGHT; 
+    int right = left + COLS * SLOT_WIDTH;  
+
+    // Set the color for the board
+    attron(COLOR_PAIR(BOARD_COLOR));       
+>>>>>>> Stashed changes
     // Draw horizontal lines
     for (int y = top; y <= bottom; y += SLOT_HEIGHT)
         for (int x = left; x <= right; ++x)
@@ -85,7 +110,11 @@ static void draw_grid(int left, int top) {
     mvaddch(top, right, ACS_URCORNER);
     mvaddch(bottom, left, ACS_LLCORNER);
     mvaddch(bottom, right, ACS_LRCORNER);
+<<<<<<< Updated upstream
     attroff(COLOR_PAIR(BOARD_COLOR));
+=======
+    attroff(COLOR_PAIR(BOARD_COLOR));     
+>>>>>>> Stashed changes
 }
 
 // // The callback function to run on new input
@@ -112,6 +141,7 @@ int find_row(int col, const unsigned char *cells) {
     return -1; // No space available 
 }
 
+<<<<<<< Updated upstream
 // Check if a player has won by counting tokens in a direction
 static int count_in_direction(const unsigned char *cells, int row, int col, 
                                int row_step, int col_step, unsigned char player) {
@@ -342,6 +372,9 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+=======
+int main(void) {
+>>>>>>> Stashed changes
     // Initialize ncurses
     if (initscr() == NULL)
         return EXIT_FAILURE;
@@ -359,6 +392,7 @@ int main(int argc, char **argv) {
     init_pair(BOARD_COLOR, COLOR_BLUE, COLOR_BLACK);
 
     // Initialize the board state
+<<<<<<< Updated upstream
     for (int i = 0; i < ROWS * COLS; i++)
         game.cells[i] = PLAYER_NONE;
     
@@ -388,6 +422,35 @@ int main(int argc, char **argv) {
         // Ignore input if game is over
         if (game.game_over)
             continue;
+=======
+    unsigned char cells[ROWS * COLS] = {0};
+    // cells[5 * COLS + 3] = PLAYER_ONE; // Example token for Player 1
+    // cells[5 * COLS + 4] = PLAYER_TWO; // Example token for Player 2
+
+    // Board position 
+    int left = 4;
+    int top = 4;
+
+    // Track player turn
+    unsigned char player = PLAYER_ONE;
+
+    // Column currently selected
+    int current_col = 0;
+
+    while(1) {
+        // Clear the screen and draw the board
+        clear();
+        mvprintw(1, 2, "Connect 4 board demo (press q to exit)"); // Display instructions
+        draw_grid(4, 4);          // Draw the grid
+        draw_tokens(4, 4, cells); // Draw the tokens
+        // Draw drop indicator
+        mvaddch(top - 1, left + current_col * SLOT_WIDTH + 1, '^');
+        // Display turn info
+        mvprintw(top + ROWS * SLOT_HEIGHT + 2, left,
+                 "Player %d's turn (q to quit)", player);
+
+        refresh();
+>>>>>>> Stashed changes
         
         pthread_mutex_lock(&game.mutex);
         
