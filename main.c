@@ -161,8 +161,9 @@ static int send_move(int col) {
     return 0;
 }
 
-/* UI */
+// function to redraws the entire screen
 void update_display(void) {
+    // clear the screen and print the title
     clear();
     attron(A_BOLD);
     wchar_t game_emoji[2] = {L'🎮', L'\0'};
@@ -170,6 +171,7 @@ void update_display(void) {
     mvprintw(0, 4, "Connect 4!!");
     attroff(A_BOLD);
 
+    // lock the game state and copy values
     pthread_mutex_lock(&game.mutex);
     unsigned char winner = game.winner;
     unsigned char current = game.current_player;
@@ -179,6 +181,7 @@ void update_display(void) {
     memcpy(cells_copy, game.cells, ROWS * COLS);
     pthread_mutex_unlock(&game.mutex);
 
+    // game_over screen
     if (game_over) {
         if (winner == PLAYER_NONE) {
             wchar_t handshake[2] = {L'🤝', L'\0'};
@@ -190,13 +193,16 @@ void update_display(void) {
             mvprintw(2, 4, "Player %d Wins!", winner);
         }
     } else {
+        // game not yet over
         mvprintw(2, 2, "Player %d's turn (Arrow keys to move, Space to place, q to quit)",
                  current);
     }
 
+    // draw grid and tokens
     draw_grid(4, 5);
     draw_tokens(4, 5, cells_copy);
 
+    // draw the cursor
     if (!game_over) {
         int cursor_x = 4 + cursor_col * SLOT_WIDTH + SLOT_WIDTH / 2;
         int cursor_y = 4;
@@ -204,7 +210,8 @@ void update_display(void) {
         mvprintw(cursor_y, cursor_x - 1, "^^^");
         attroff(COLOR_PAIR(BOARD_COLOR) | A_BOLD);
     }
-
+    
+    // draw the rules box
     int rules_x = COLS * SLOT_WIDTH + 10;
     attron(A_BOLD);
     wchar_t rules_emoji[2] = {L'📋', L'\0'};
@@ -212,6 +219,7 @@ void update_display(void) {
     mvprintw(5, rules_x + 2, "RULES:");
     attroff(A_BOLD);
 
+    // print rule text
     mvprintw(6, rules_x, "1. Players take turns");
     mvprintw(7, rules_x + 2, "placing tokens in columns");
     mvprintw(8, rules_x, "2. Tokens drop to the");
@@ -223,18 +231,23 @@ void update_display(void) {
     mvprintw(12, rules_x + 2, "(horizontal, vertical,");
     mvprintw(13, rules_x + 2, "or diagonal)");
 
+    // draw controls screen
     wchar_t keyboard[2] = {L'⌨', L'\0'};
     mvaddwstr(ROWS * SLOT_HEIGHT + 7, 2, keyboard);
     mvprintw(ROWS * SLOT_HEIGHT + 7, 4, "Controls: Arrow keys = Move cursor, Space = Place token, q = Quit");
 
+    // render
     refresh();
 }
 
-/* recv thread */
+// When a move arrives it is applied to the board and turn switches
 void* recv_thread(void *arg) {
     (void)arg;
     unsigned char buf[2];
+
+    // loop to reading the opponent's chosen column
     while (1) {
+        // read the column number
         ssize_t r = read_all(socket_fd, buf, 2);
         if (r == 0) break; // peer closed
         if (r < 0) break;  // error
@@ -243,19 +256,24 @@ void* recv_thread(void *arg) {
         if (col < 0 || col >= COLS) continue;
 
         pthread_mutex_lock(&game.mutex);
+        // unlocks and exits if the game end
         if (game.game_over) {
             pthread_mutex_unlock(&game.mutex);
             break;
         }
 
+        // token position
         int row = find_row(col, game.cells);
-        if (row != -1) {
+        if (row != -1) { // column is full
+            // determine player identity
             unsigned char peer_player = (sender == PLAYER_ONE) ? PLAYER_ONE : PLAYER_TWO;
-            /* sanity: if peer_player == my_player, ignore (protocol error) */
+            // if peer_player == my_player do nothing
             if (peer_player == my_player) {
-                /* ignore or log */
+                // do nothing
             } else {
                 game.cells[row * COLS + col] = peer_player;
+                
+                // check for win or draw
                 if (check_win(game.cells, row, col, peer_player)) {
                     game.winner = peer_player;
                     game.game_over = 1;
@@ -263,30 +281,34 @@ void* recv_thread(void *arg) {
                     game.winner = PLAYER_NONE;
                     game.game_over = 1;
                 } else {
-                    /* after peer moved, it becomes our turn */
+                    // after peer moved, now it's the local player's turn
                     game.current_player = my_player;
                 }
             }
         }
+        // unlock and update the screen
         pthread_mutex_unlock(&game.mutex);
         update_display();
     }
     return NULL;
 }
 
-/* program entry */
 int main(int argc, char **argv) {
+    // argument parsing
     if (argc != 2 && argc != 4) {
         fprintf(stderr, "Usage:\n  Server: %s <username>\n  Client: %s <username> <server-host> <server-port>\n", argv[0], argv[0]);
         return EXIT_FAILURE;
     }
 
+    // server mode
     int is_server = (argc == 2);
     unsigned short port = 0;
     socket_fd = -1;
     server_listen_fd = -1;
 
+    // networking setup
     if (is_server) {
+        // open server socket and listen, then accept one connection
         server_listen_fd = server_socket_open(&port);
         if (server_listen_fd < 0) {
             perror("server_socket_open");
@@ -297,15 +319,19 @@ int main(int argc, char **argv) {
             close(server_listen_fd);
             return EXIT_FAILURE;
         }
+        // print port so peer can connect
         fprintf(stderr, "Listening on port %u\n", port);
+
+        // accept one connection
         int peer_fd = accept(server_listen_fd, NULL, NULL);
         if (peer_fd < 0) {
             perror("accept");
             close(server_listen_fd);
             return EXIT_FAILURE;
         }
-        socket_fd = peer_fd;
+        socket_fd = peer_fd; // store the client fd to the global variable
     } else {
+        // client: connect to peer
         const char *peer_host = argv[2];
         unsigned short peer_port = (unsigned short)atoi(argv[3]);
         int fd = socket_connect(peer_host, peer_port);
@@ -313,10 +339,10 @@ int main(int argc, char **argv) {
             perror("socket_connect");
             return EXIT_FAILURE;
         }
-        socket_fd = fd;
+        socket_fd = fd; // store fb to the global variable
     }
 
-    /* init UI */
+    // init UI 
     setlocale(LC_ALL, "");
     if (initscr() == NULL) {
         fprintf(stderr, "initscr failed\n");
@@ -329,19 +355,19 @@ int main(int argc, char **argv) {
     init_pair(PLAYER_TWO, COLOR_YELLOW, COLOR_BLACK);
     init_pair(BOARD_COLOR, COLOR_BLUE, COLOR_BLACK);
 
-    /* initialize game */
+    // initialize game 
     memset(game.cells, PLAYER_NONE, sizeof(game.cells));
     pthread_mutex_init(&game.mutex, NULL);
     pthread_cond_init(&game.turn_cond, NULL);
 
     my_player = is_server ? PLAYER_ONE : PLAYER_TWO;
-    /* Both sides show Player 1 starts */
+    // Both sides show Player 1 starts 
     game.current_player = PLAYER_ONE;
     game.winner = PLAYER_NONE;
     game.cursor_col = COLS / 2;
     game.game_over = 0;
 
-    /* start recv thread */
+    // start recv thread 
     pthread_t rt;
     if (pthread_create(&rt, NULL, recv_thread, NULL) != 0) {
         endwin();
@@ -350,10 +376,10 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    /* initial draw */
+    // initial draw 
     update_display();
 
-    /* main input loop */
+    // main input loop 
     int ch;
     while ((ch = getch()) != 'q' && ch != 'Q') {
         pthread_mutex_lock(&game.mutex);
@@ -376,7 +402,7 @@ int main(int argc, char **argv) {
         }
 
         if (ch == ' ') {
-            /* Only allow placing if it's this process's player turn */
+            // Only allow placing if it's this process's player turn 
             if (game.current_player != my_player) {
                 pthread_mutex_unlock(&game.mutex);
                 continue;
@@ -388,19 +414,19 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            /* place locally */
+            // place locally 
             game.cells[row * COLS + col] = my_player;
 
-            /* send to peer */
+            // send to peer 
             if (send_move(col) != 0) {
-                /* mark game over on error */
+                // mark game over on error 
                 game.game_over = 1;
                 game.winner = PLAYER_NONE;
                 pthread_mutex_unlock(&game.mutex);
                 break;
             }
 
-            /* check win/draw */
+            // check win/draw 
             if (check_win(game.cells, row, col, my_player)) {
                 game.winner = my_player;
                 game.game_over = 1;
