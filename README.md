@@ -5,10 +5,9 @@ This is the final project for CSC 213: Operating Systems and Parallel Algorithms
 ## Operating Systems Concepts
 
 The following OS concepts are demonstrated in this project:
-1. **Scheduling** - Round Robin Fashion
-2. **Parallelism with Threads** - Two player threads run concurrently
-3. **Thread Synchronization** - Mutexes coordinate access to shared game state
-4. **Networking** - TCP socket-based client-server architecture for remote gameplay. 
+1. **Parallelism with Threads** - Two player threads run concurrently
+2. **Thread Synchronization** - Mutexes coordinate access to shared game state
+3. **Networking** - TCP socket-based client-server architecture for remote gameplay. 
 
 ## Architecture
 
