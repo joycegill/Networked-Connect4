@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
         socket_fd = peer_fd;
     } else {
         // Client: connect to peer
-        const char *peer_host = argv[2];
+        char *peer_host = argv[2];
         unsigned short peer_port = (unsigned short)atoi(argv[3]);
         int fd = socket_connect(peer_host, peer_port);
         if (fd < 0) {
