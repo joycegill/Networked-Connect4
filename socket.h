@@ -98,28 +98,4 @@ static int server_socket_open(unsigned short* port) {
   return fd;
 }
 
-/**
- * Accept an incoming connection on a server socket.
- *
- * \param server_socket_fd  The server socket that should accept the connection.
- *
- * \returns   The file descriptor for the newly-connected client socket. In case
- *            of failure, returns -1 with errno set by the failed accept call.
- */
-static int server_socket_accept(int server_socket_fd) {
-  // Create a struct to record the connected client's address
-  struct sockaddr_in client_addr;
-  socklen_t client_addr_len = sizeof(struct sockaddr_in);
-
-  // Block until we receive a connection or failure
-  int client_socket_fd = accept(server_socket_fd, (struct sockaddr*)&client_addr, &client_addr_len);
-
-  // Did something go wrong?
-  if (client_socket_fd == -1) {
-    return -1;
-  }
-
-  return client_socket_fd;
-}
-
 #endif
