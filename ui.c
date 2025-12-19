@@ -146,7 +146,7 @@ void update_display(void) {
     draw_grid(board_left, board_top);
     draw_tokens(board_left, board_top, cells_copy);
 
-    // Draw the cursor with better visibility
+    // Draw the cursor 
     if (!game_over) {
         int cursor_x = board_left + cursor_col * SLOT_WIDTH + SLOT_WIDTH / 2;
         int cursor_y = board_top - 1;
