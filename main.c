@@ -75,9 +75,9 @@ static int server_listen_fd = -1; // Listening fd if acting as server
 static int send_move(int col) {
     if (socket_fd == -1) return -1;
     unsigned char buf[2];
-    buf[0] = my_player;
-    buf[1] = (unsigned char)col;
-    ssize_t w = write_helper(socket_fd, buf, 2);
+    buf[0] = my_player; // Identify who sent the move
+    buf[1] = (unsigned char)col; // Column where the token is placed
+    ssize_t w = write_helper(socket_fd, buf, 2); // Write all bytes to the socket
     if (w != 2) return -1;
     return 0;
 }
@@ -114,7 +114,7 @@ void* recv_thread(void *arg) {
         if (row != -1) { // Column is not full
             // Determine player identity
             unsigned char peer_player = (sender == PLAYER_ONE) ? PLAYER_ONE : PLAYER_TWO;
-            // If peer_player != my_player, process the move
+            // Apply the move only if it came from the opponent 
             if (peer_player != my_player) {
                 game.cells[row * COLS + col] = peer_player;
                 
